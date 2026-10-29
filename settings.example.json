@@ -1,0 +1,26 @@
+{
+  "_instructions": [
+    "这是示例配置。首次启动后，按自己的安装位置填写 data/settings.json，再重启画舫。",
+    "models_dir 是 ComfyUI 的 models 目录，output_dir 是 ComfyUI 的 output 目录；两项须为完整路径。",
+    "trigger_map 和 zh.table 可留空，分别默认读取 data/trigger_map.json 和 data/zh_tags.json；文件不随项目提供。",
+    "comfy.vbs 和 comfy.bat 仅在本地配置。留空时请手动启动 ComfyUI；auto_start 默认关闭。",
+    "output.dir 是可选的成品复制目录，留空时成品仅保存在 ComfyUI 中。"
+  ],
+  "comfy_url": "http://127.0.0.1:8188",
+  "models_dir": "C:/AI/ComfyUI_windows_portable/ComfyUI/models",
+  "output_dir": "C:/AI/ComfyUI_windows_portable/ComfyUI/output",
+  "trigger_map": "",
+  "zh": {
+    "enabled": true,
+    "ollama_url": "http://127.0.0.1:11434",
+    "model": "qwen3.5:9b",
+    "timeout_sec": 20,
+    "table": ""
+  },
+  "output": {"dir": ""},
+  "comfy": {
+    "auto_start": false,
+    "vbs": "",
+    "bat": "C:/AI/ComfyUI_windows_portable/run_nvidia_gpu.bat"
+  }
+}

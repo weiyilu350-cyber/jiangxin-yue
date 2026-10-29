@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>画舫 · 对比板</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/gallery.css">
+<link rel="icon" href="/static/favicon.ico">
+</head>
+<body data-density="loose" data-bg-on="0" data-bg-tone="light">
+<header>
+  <h1>画舫 · 对比板</h1>
+  <a id="nav-home" class="pill" href="/">出图台</a>
+  <a id="nav-gallery" class="pill" href="/gallery">图库</a>
+  <span id="cmp-state" class="pill">…</span>
+  <span class="ui-controls">
+    <label class="ui-ctl" title="密度沿用出图台的设置">密度
+      <select id="ui-density">
+        <option value="loose">宽松</option>
+        <option value="compact">紧凑</option>
+      </select>
+    </label>
+    <span id="cmp-message" class="ui-msg" role="status"></span>
+  </span>
+</header>
+<main class="gal-main">
+  <section class="panel">
+    <h2>怎么比</h2>
+    <div class="row">
+      <button id="tab-a" class="mini" type="button" title="以当前参数为基准，只换几项参数，同一个 seed 出 N 张，自动拼板">模式 A · 同 seed 出变体</button>
+      <button id="tab-b" class="mini" type="button" title="从图库勾 2–8 张并排看，可切网格、可同步缩放">模式 B · 从图库挑图</button>
+    </div>
+
+    <div id="pane-a">
+      <div class="row">
+        <label>工作流 <select id="a-profile"></select></label>
+        <label>底模 <select id="a-unet"></select></label>
+        <label>种子 <input id="a-seed" type="number" value="-1" title="-1＝随机；一次定死，N 个变体共用同一个 seed"></label>
+      </div>
+      <div class="row">
+        <label>正词 <textarea id="a-positive" rows="2" placeholder="想画什么写这里"></textarea></label>
+      </div>
+      <div class="row">
+        <label>负词 <textarea id="a-negative" rows="2"></textarea></label>
+      </div>
+      <div class="row params">
+        <label>宽 <input id="a-width" type="number" value="832"></label>
+        <label>高 <input id="a-height" type="number" value="1216"></label>
+        <label>步数 <input id="a-steps" type="number" value="30"></label>
+        <label>CFG <input id="a-cfg" type="number" step="0.1" value="4.0"></label>
+        <label>采样器 <select id="a-sampler"></select></label>
+        <label>调度 <select id="a-scheduler"></select></label>
+      </div>
+      <p class="hint">笔与触发词跟着出图台带过来的基准参数走（在出图台点顶栏「对比板」就会把当前整套参数带过来）；没带笔＝空槽、强度归零。变体里不许改种子、张数、工作流——模式 A 比的就是同 seed、同工作流下的参数差。</p>
+      <div class="row">
+        <button id="add-variant" class="mini" type="button">加一个变体</button>
+        <button id="drop-variant" class="mini" type="button">去掉最后一个</button>
+        <span id="variant-count" class="gal-stats"></span>
+      </div>
+      <div id="variants"></div>
+      <div class="row">
+        <button id="run-a" type="button">同 seed 出这几个变体</button>
+        <span id="seed-show" class="pill" hidden></span>
+      </div>
+    </div>
+
+    <div id="pane-b" hidden>
+      <div class="row">
+        <button id="layout-side" class="mini" type="button">并排</button>
+        <button id="layout-tiles" class="mini" type="button">网格</button>
+        <label class="check"><input id="sync-zoom" type="checkbox" checked> 同步缩放／平移（同位置放大看细节）</label>
+        <button id="zoom-in" class="mini" type="button">放大</button>
+        <button id="zoom-out" class="mini" type="button">缩小</button>
+        <button id="zoom-reset" class="mini" type="button">复位</button>
+      </div>
+      <p class="hint">挑图在图库页：勾左上角的圈选 2–8 张，点「对比这几张」就跳过来。</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 id="board-title">对比</h2>
+    <div id="board" class="cmp-grid side"></div>
+    <div class="row" id="export-row" hidden>
+      <button id="export" class="mini" type="button" title="把这几张拼成一张 PNG，用浏览器的下载存下来">导出拼板 PNG</button>
+      <span id="export-message" class="gal-stats" role="status"></span>
+    </div>
+    <h2>参数回执</h2>
+    <table id="receipts">
+      <thead><tr><th>变体</th><th>项</th><th>界面要的</th><th>炉子收到的</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="hint">任何一项 ✗ 就是没对上；回执口径与出图台完全一致（模式 A 复用同一条出图链路，不另开路）。</p>
+  </section>
+</main>
+<script>window.HUAFANG_TOKEN = "__HUAFANG_TOKEN__";</script>
+<script src="/static/compare.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+data/
+acceptance/
+auto/
+*.sqlite
+*.log
+__pycache__/
+.venv/

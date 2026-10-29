@@ -1,0 +1,294 @@
+{
+  "workflow": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "anima-aesthetic-v1.1.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "10": {
+      "class_type": "LoraLoaderModelOnly",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "lora_name": "sample_style.safetensors",
+        "strength_model": 1.0
+      }
+    },
+    "11": {
+      "class_type": "LoraLoaderModelOnly",
+      "inputs": {
+        "model": [
+          "10",
+          0
+        ],
+        "lora_name": "sample_style.safetensors",
+        "strength_model": 0.65
+      }
+    },
+    "12": {
+      "class_type": "LoraLoaderModelOnly",
+      "inputs": {
+        "model": [
+          "11",
+          0
+        ],
+        "lora_name": "sample_style.safetensors",
+        "strength_model": 0.5
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen_3_06b_base.safetensors",
+        "type": "qwen_image"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "qwen_image_vae.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "placeholder positive"
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "placeholder negative"
+      }
+    },
+    "6": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      }
+    },
+    "7": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "12",
+          0
+        ],
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "latent_image": [
+          "6",
+          0
+        ],
+        "seed": 42,
+        "steps": 30,
+        "cfg": 4.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1.0
+      }
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "7",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "8",
+          0
+        ],
+        "filename_prefix": "three_lora"
+      }
+    }
+  },
+  "profile": {
+    "schema_version": 2,
+    "workflow_id": "anima_aesthetic_tri",
+    "label": "Anima Aesthetic 三笔",
+    "family": "anima",
+    "source_format": "api",
+    "model_slots": [
+      {
+        "role": "unet",
+        "node": "1",
+        "input": "unet_name",
+        "family": "anima",
+        "label": "底模"
+      },
+      {
+        "role": "clip",
+        "node": "2",
+        "input": "clip_name",
+        "family": "anima",
+        "label": "文本编码器"
+      },
+      {
+        "role": "vae",
+        "node": "3",
+        "input": "vae_name",
+        "family": "anima",
+        "label": "VAE"
+      }
+    ],
+    "lora_slots": [
+      {
+        "role": "lora1",
+        "node": "10",
+        "name_input": "lora_name",
+        "strength_input": "strength_model",
+        "clip_strength_input": null,
+        "stages": [
+          "stage1"
+        ]
+      },
+      {
+        "role": "lora2",
+        "node": "11",
+        "name_input": "lora_name",
+        "strength_input": "strength_model",
+        "clip_strength_input": null,
+        "stages": [
+          "stage1"
+        ]
+      },
+      {
+        "role": "lora3",
+        "node": "12",
+        "name_input": "lora_name",
+        "strength_input": "strength_model",
+        "clip_strength_input": null,
+        "stages": [
+          "stage1"
+        ]
+      }
+    ],
+    "stages": [
+      {
+        "id": "stage1",
+        "label": "直出",
+        "model_role": "unet",
+        "lora_roles": [
+          "lora1",
+          "lora2",
+          "lora3"
+        ],
+        "links": {
+          "model": {
+            "node": "7",
+            "input": "model"
+          },
+          "positive": {
+            "node": "7",
+            "input": "positive"
+          },
+          "negative": {
+            "node": "7",
+            "input": "negative"
+          },
+          "latent": {
+            "node": "7",
+            "input": "latent_image"
+          }
+        },
+        "params": {
+          "seed": {
+            "node": "7",
+            "input": "seed"
+          },
+          "steps": {
+            "node": "7",
+            "input": "steps"
+          },
+          "cfg": {
+            "node": "7",
+            "input": "cfg"
+          },
+          "sampler_name": {
+            "node": "7",
+            "input": "sampler_name"
+          },
+          "scheduler": {
+            "node": "7",
+            "input": "scheduler"
+          },
+          "denoise": {
+            "node": "7",
+            "input": "denoise"
+          }
+        },
+        "prompt": {
+          "positive_source": [
+            {
+              "node": "4",
+              "input": "text"
+            }
+          ],
+          "negative_source": [
+            {
+              "node": "5",
+              "input": "text"
+            }
+          ]
+        },
+        "latent_size": {
+          "node": "6",
+          "width_input": "width",
+          "height_input": "height",
+          "batch_input": "batch_size"
+        }
+      }
+    ],
+    "save_slots": [
+      {
+        "node": "9",
+        "prefix_input": "filename_prefix",
+        "final": true
+      }
+    ],
+    "image_slots": [],
+    "params": {
+      "per_stage": true,
+      "keep_workflow_value": []
+    },
+    "defaults": {
+      "steps": 30,
+      "cfg": 4.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "width": 1024,
+      "height": 1024
+    },
+    "notes": "B 卡 §1 导入自 wf_three_lora_yfs.json：1 段、3 笔槽、1 个存图口（成品 1 个）"
+  }
+}

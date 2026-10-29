@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 画舫内置示例背景 · 深色样张（T007 / D36）。
+     自产矢量图：纯手写几何＋渐变，无版权、无外部引用、不联网（D90 精神）。
+     用途：验证「深图 → 半透明深色遮罩＋文字提亮」这条自适应分支。 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c1526"/>
+      <stop offset="0.55" stop-color="#182742"/>
+      <stop offset="1" stop-color="#22344f"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0.22" cy="0.2" r="0.4">
+      <stop offset="0" stop-color="#dfeaff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#dfeaff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="nightWater" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101d33"/>
+      <stop offset="1" stop-color="#1b2c47"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#night)"/>
+  <rect width="1600" height="1000" fill="url(#moonGlow)"/>
+
+  <!-- 星子 -->
+  <g fill="#e8f0ff">
+    <circle cx="120" cy="90" r="3" opacity="0.9"/>
+    <circle cx="410" cy="60" r="2" opacity="0.7"/>
+    <circle cx="640" cy="150" r="2.6" opacity="0.85"/>
+    <circle cx="880" cy="70" r="2" opacity="0.6"/>
+    <circle cx="1080" cy="190" r="3.2" opacity="0.9"/>
+    <circle cx="1320" cy="90" r="2.2" opacity="0.75"/>
+    <circle cx="1500" cy="230" r="2.8" opacity="0.8"/>
+    <circle cx="250" cy="300" r="2" opacity="0.55"/>
+    <circle cx="760" cy="330" r="2.4" opacity="0.6"/>
+    <circle cx="1180" cy="420" r="2" opacity="0.5"/>
+    <circle cx="520" cy="440" r="1.8" opacity="0.45"/>
+    <circle cx="1420" cy="520" r="2" opacity="0.4"/>
+  </g>
+
+  <!-- 月 -->
+  <circle cx="352" cy="200" r="86" fill="#f2f6ff" opacity="0.95"/>
+  <circle cx="392" cy="176" r="76" fill="#16263f" opacity="0.55"/>
+
+  <!-- 夜云：深蓝剪影 -->
+  <g fill="#0e1a2e">
+    <g opacity="0.75">
+      <ellipse cx="980" cy="250" rx="230" ry="56"/>
+      <ellipse cx="1120" cy="222" rx="150" ry="46"/>
+      <ellipse cx="860" cy="228" rx="120" ry="38"/>
+    </g>
+    <g opacity="0.55">
+      <ellipse cx="300" cy="470" rx="200" ry="44"/>
+      <ellipse cx="420" cy="452" rx="130" ry="36"/>
+    </g>
+  </g>
+
+  <!-- 水面与月的反光 -->
+  <path d="M0 700c200-58 340 20 490-24s290-80 440-32 300 80 670 16v340H0z"
+        fill="url(#nightWater)"/>
+  <g fill="#cfe0ff">
+    <rect x="300" y="742" width="180" height="6" rx="3" opacity="0.28"/>
+    <rect x="330" y="790" width="120" height="5" rx="2.5" opacity="0.22"/>
+    <rect x="280" y="846" width="220" height="6" rx="3" opacity="0.18"/>
+    <rect x="340" y="906" width="110" height="5" rx="2.5" opacity="0.14"/>
+  </g>
+
+  <!-- 樱粉点缀：夜色里也留一点暖 -->
+  <g fill="#e79ab8">
+    <ellipse cx="1240" cy="620" rx="24" ry="14" transform="rotate(-22 1240 620)" opacity="0.5"/>
+    <ellipse cx="1470" cy="700" rx="18" ry="11" transform="rotate(28 1470 700)" opacity="0.42"/>
+    <ellipse cx="640" cy="580" rx="15" ry="9" transform="rotate(-38 640 580)" opacity="0.35"/>
+  </g>
+</svg>

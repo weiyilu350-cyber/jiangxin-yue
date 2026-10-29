@@ -1,0 +1,437 @@
+/* 画舫样式 · T007 视觉收口（D35 浅色 BA 风／D36 可换背景／D37 密度／D38 轻动效）
+   基调：天空蓝＋浅青＋奶油白，樱粉点缀；面板圆角＋磨砂（backdrop-filter，不引库）。
+   两条硬规矩：
+   ① 状态色语义一个不动——绿＝好、红＝坏、黄＝提醒，只换底色与层级；
+   ② 正文／标签／按钮文字对所处底色对比度 ≥4.5:1（WCAG AA）；下面的变量就是照这个挑的，
+     每个 tone 都留了一个「实际看起来」的不透明等价色 --panel-solid，验收取色就拿它算。
+   既有 ID／class 名一个没改（卡面红线）；新增的只有 .bg-layer/.bg-mask/.ui-controls/.ui-ctl/.ui-msg
+   与 @keyframes ba-fade。 */
+:root {
+  --blue: #3fa9dc;          /* 青蓝只当装饰色，正文和按钮底使用较深的蓝以保证对比 */
+  --blue-strong: #2a72b5;   /* 能当文字／按钮底的蓝：白字 5.0:1，浅底上 4.7:1 */
+  --sakura: #ffb3c7;
+  --cyan: #7ed6f0;
+  --bg-blur: 10px;
+  --radius: 16px;
+  --gap: 10px;
+  --pad: 16px;
+  --fade: 180ms;            /* 所有装饰动效都 ≤200ms（卡 §4） */
+}
+
+/* 浅底色板（默认，也用于浅色背景图） */
+body {
+  --ink: #22324a;
+  --muted: #506270;
+  --link: #22639c;
+  --ok: #2c6a3b;            /* 6.0:1 */
+  --bad: #af3027;
+  --warn-ink: #7a5c00;      /* 6.0:1 */
+  --line: #d3e4f1;
+  --panel: rgba(255, 255, 255, .90);
+  --panel-solid: #e6e6e6;   /* .90 白卡叠纯黑的保守底色；背景越亮实际对比越高 */
+  --panel-border: rgba(63, 169, 220, .35);
+  --card-bg: #ffffff;
+  --card-bg-dim: #f4f9fd;
+  --field-bg: #ffffff;
+  --btn-bg: #f4f9fd;
+  --hover-bg: #e2f0fb;
+  --pre-bg: #f4f9fd;
+  --pill-bg: #dcebf7;   --pill-ink: #22303c;   /* 11.1:1 */
+  --ok-bg: #d8f0dd;     --ok-chip-ink: #2c6a3b;   /* 5.4:1 */
+  --bad-bg: #f7dcdc;    --bad-chip-ink: #a03028;  /* 5.5:1 */
+  --warn-bg: #fdf3d8;   --warn-chip-ink: #7a5c00; /* 5.7:1 */
+  --err-bg: #fdeeec;    --err-line: #d9a49f;
+  --shadow: 0 0 16px rgba(126, 214, 240, .20), 0 5px 18px rgba(34, 50, 74, .08);
+}
+
+/* 深底色板：背景图偏暗时挂上（JS 采 16×16 平均亮度判定），文字整体提亮 */
+body[data-bg-tone="dark"] {
+  --ink: #eef4fa;           /* 11.4:1 */
+  --muted: #b9c8d6;         /* 7.4:1 */
+  --link: #9ecdf2;          /* 9.1:1 */
+  --ok: #8fe0a8;            /* 8.1:1 */
+  --bad: #f0a49b;           /* 6.3:1 */
+  --warn-ink: #f0cf7a;      /* 8.4:1 */
+  --line: #46586e;
+  --panel: rgba(28, 40, 56, .92);
+  --panel-solid: #263445;   /* 比实际叠加结果更亮一点＝对比度算出来偏低，保守 */
+  --panel-border: rgba(150, 180, 210, .22);
+  --card-bg: #1b2634;
+  --card-bg-dim: #24303f;
+  --field-bg: #1b2634;
+  --btn-bg: #2b3b50;
+  --hover-bg: #354962;
+  --pre-bg: #16202c;
+  --pill-bg: #2c3d54;   --pill-ink: #dce8f5;   /* 8.9:1 */
+  --ok-bg: #1f3d29;     --ok-chip-ink: #8fe0a8;   /* 7.6:1 */
+  --bad-bg: #4a2a28;    --bad-chip-ink: #f0a49b;  /* 6.3:1 */
+  --warn-bg: #4a3d18;   --warn-chip-ink: #f0cf7a; /* 7.1:1 */
+  --err-bg: #4a2a28;    --err-line: #7a4a45;
+  --shadow: 0 6px 22px rgba(6, 12, 22, .45);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: var(--ink);
+  /* 关闭背景＝纯底色主题：奶油白 → 天空蓝 → 浅青，右上角一点樱粉（纯 CSS，不用图） */
+  background:
+    radial-gradient(1100px 560px at 84% -10%, rgba(246, 198, 216, .38) 0%, rgba(246, 198, 216, 0) 62%),
+    radial-gradient(900px 520px at 4% 2%, rgba(214, 240, 238, .55) 0%, rgba(214, 240, 238, 0) 60%),
+    linear-gradient(165deg, #fdf9fb 0%, #eaf4fb 48%, #dff0f4 100%);
+  background-attachment: fixed;
+  transition: color var(--fade) ease;
+}
+::placeholder { color: var(--muted); }
+
+/* ---- T007 背景两层：图（模糊）＋自适应遮罩；都在内容下面（负 z-index） ---- */
+.bg-layer {
+  position: fixed;
+  inset: calc(var(--bg-blur) * -2.5);   /* 往外扩一圈：模糊边缘的透明带不会露出来 */
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(var(--bg-blur));
+  opacity: 0;
+  transition: opacity var(--fade) ease;
+}
+.bg-mask {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity var(--fade) ease, background-color var(--fade) ease;
+}
+body[data-bg-on="1"] .bg-layer,
+body[data-bg-on="1"] .bg-mask { opacity: 1; }
+/* 浅图 → 白遮罩（把内容面板衬亮、文字压深）；深图 → 深遮罩（面板压暗、文字提亮） */
+body[data-bg-on="1"][data-bg-tone="light"] .bg-mask {
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,.20) 50%, rgba(255,255,255,.48) 100%);
+}
+body[data-bg-on="1"][data-bg-tone="dark"] .bg-mask {
+  background: linear-gradient(to bottom, rgba(14,22,36,0) 0%, rgba(14,22,36,.20) 50%, rgba(14,22,36,.50) 100%);
+}
+
+header { display: flex; align-items: center; gap: 12px; padding: 14px 22px; flex-wrap: wrap;
+  background: var(--panel); border-bottom: 1px solid var(--panel-border); margin-bottom: 16px; }
+h1 { font-size: 20px; margin: 0; letter-spacing: .06em; }
+h1::after {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 3px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--sakura), var(--blue));
+}
+h2 { font-size: 15px; margin: 14px 0 8px; }
+main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 22px 22px; }
+.panel {
+  align-self: start;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  box-shadow: var(--shadow);
+  transition: background-color var(--fade) ease, box-shadow var(--fade) ease;
+}
+.row { display: flex; flex-wrap: wrap; gap: var(--gap); margin-bottom: var(--gap); align-items: center; }
+.row > label { flex: 1; min-width: 180px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.params label { flex: 0 0 auto; min-width: 0; }
+input, select, textarea {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--field-bg);
+  color: var(--ink);
+  transition: border-color var(--fade) ease, background-color var(--fade) ease;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+input.narrow { width: 76px; }
+textarea { resize: vertical; }
+button#go {
+  background: linear-gradient(115deg, #216698, #19758a);
+  color: #fff;                /* 白字对 #2a72b5＝5.0:1，两套 tone 都达标 */
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 26px;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(42, 114, 181, .28);
+  transition: filter var(--fade) ease, box-shadow var(--fade) ease;
+}
+button#go:hover { filter: brightness(1.1); box-shadow: 0 6px 18px rgba(42, 114, 181, .34); }
+button#go:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* 胶囊（炉子状态／出图状态／显卡提示）：自带底色＋自带文字色，两套 tone 都读得清 */
+.pill { border-radius: 999px; padding: 3px 12px; font-size: 12px;
+        background: var(--pill-bg); color: var(--pill-ink); }
+.pill.ok { background: var(--ok-bg); color: var(--ok-chip-ink); }
+.pill.bad { background: var(--bad-bg); color: var(--bad-chip-ink); }
+/* T006 显卡胶囊：形状沿用 pill，配色照抄 T004 的 .warn 黄／.warn.bad 红 */
+.pill.warn { background: var(--warn-bg); color: var(--warn-chip-ink); }
+.pill.warn.bad { background: var(--bad-bg); color: var(--bad-chip-ink); }
+#wall { display: flex; flex-wrap: wrap; gap: 10px; }
+#wall img {
+  max-width: 260px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 3px 12px rgba(20, 40, 60, .18);
+  animation: ba-fade 200ms ease-out;
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td, th { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; }
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+details pre {
+  background: var(--pre-bg);
+  color: var(--ink);
+  padding: 8px;
+  border-radius: 8px;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 12px;
+}
+details summary { cursor: pointer; }
+/* 面板展开渐入（卡 §4）：display 从 none 变回来时动画会重新跑一遍 */
+details[open] > *:not(summary) { animation: ba-fade var(--fade) ease-out; }
+
+/* T002 预设行 */
+[hidden] { display: none !important; }
+button.mini {
+  border: 1px solid var(--panel-border);
+  background: var(--field-bg);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--fade) ease, filter var(--fade) ease;
+}
+button.mini:hover { background: var(--hover-bg); filter: brightness(1.03); }
+button.mini:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.preset-row > label { flex: 0 1 220px; min-width: 160px; }
+.preset-row label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+#preset option.unusable { color: var(--muted); }
+.warn {
+  font-size: 13px;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--warn-bg);
+  color: var(--warn-chip-ink);
+  animation: ba-fade var(--fade) ease-out;
+}
+.warn.ok { background: var(--ok-bg); color: var(--ok-chip-ink); }
+.warn.bad { background: var(--bad-bg); color: var(--bad-chip-ink); }
+#save-box { animation: ba-fade var(--fade) ease-out; }
+#save-box input[type="text"] { min-width: 200px; }
+/* T003 模型中心：面板默认收起，长文件名要能看全 */
+#models-panel summary { cursor: pointer; font-weight: 600; }
+#models-panel .hint { font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
+#models-list { max-height: 62vh; overflow: auto; }
+#models-list h3 { font-size: 13px; margin: 12px 0 2px; color: var(--ink); }
+.model-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.model-name { flex: 1 1 240px; overflow-wrap: anywhere; }
+.model-size { flex: 0 0 auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.model-source { flex: 0 0 auto; }
+.model-effective { flex: 0 1 200px; overflow-wrap: anywhere; }
+.model-effective.none { color: var(--muted); }
+.model-row input { flex: 1 1 160px; min-width: 100px; }
+.model-msg { font-size: 13px; }
+.model-msg.ok { color: var(--ok); }
+.model-msg.bad { color: var(--bad); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* T004 中文辅助：按钮次要、提示不抢眼，候选列表自己滚，别把「出图」挤下去 */
+.zh-row { margin-top: -4px; }
+.zh-msg { font-size: 13px; color: var(--muted); flex: 1 1 200px; }
+.zh-msg.ok { color: var(--ok); }
+.zh-msg.bad { color: var(--bad); }
+.zh-msg.warn { color: var(--warn-ink); }
+.zh-pop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 180px;
+  overflow: auto;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-bg-dim);
+  animation: ba-fade 160ms ease-out;
+}
+.zh-item {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  border: 1px solid var(--line);
+  background: var(--card-bg);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--fade) ease;
+}
+.zh-item:hover { background: var(--hover-bg); }
+.zh-item-zh { color: var(--ink); }
+.zh-item-en { color: var(--link); font-family: Consolas, monospace; }
+
+/* T005 任务卡片：状态一眼分得开，卡片自己排，结果墙还在老地方 */
+.jobs-msg { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
+.jobs-msg.bad { color: var(--bad); }
+.jobs-msg.warn { color: var(--warn-ink); }
+#jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+#jobs:empty { display: none; }
+.job-card {
+  flex: 0 1 260px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-bg);
+  padding: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  animation: ba-fade var(--fade) ease-out;   /* 卡片出现 fade（卡 §4）；只动 opacity，不动位置 */
+  transition: background-color var(--fade) ease, border-color var(--fade) ease;
+}
+.job-card:hover { background: var(--hover-bg); }
+.job-card:focus-visible { outline: 2px solid var(--blue); }
+.job-card.queued { border-color: var(--line); background: var(--card-bg-dim); color: var(--muted); }
+.job-card.running { border-color: var(--blue); }
+.job-card.error { border-color: var(--err-line); background: var(--err-bg); color: var(--bad-chip-ink); }
+.job-card.selected { outline: 2px solid var(--blue); }
+.job-state { font-weight: 600; }
+.job-sum { color: var(--muted); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
+.job-card img.thumb {
+  max-width: 96px;
+  max-height: 96px;
+  margin: 6px 6px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  vertical-align: top;
+}
+.spin {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border: 2px solid var(--line);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  vertical-align: -1px;
+  animation: jobspin .9s linear infinite;
+}
+@keyframes jobspin { to { transform: rotate(360deg); } }
+#wall img.bad { outline: 2px solid var(--err-line); }
+
+/* T008 尺寸下拉：文案（竖 1024×1536）比数字框长，给个最小宽度免得挤窄看不清 */
+#size-preset { min-width: 122px; }
+
+/* T010 输出目录：路径比一般输入长；复制失败的黄字挂在卡片里，别抢眼也别藏 */
+.output-row > label { flex: 1 1 320px; }
+.output-row input[type="text"] { min-width: 240px; }
+.job-copy { color: var(--warn-ink); font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
+
+/* ---- T007 顶栏那两个小开关（背景／密度）＋一句反馈 ---- */
+.ui-controls { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ui-ctl {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ui-ctl select { font-size: 12px; padding: 3px 6px; border-radius: 999px; }
+.ui-ctl #ui-blur { width: 94px; padding: 0; accent-color: var(--blue-strong); }
+#ui-blur-value { min-width: 66px; font-variant-numeric: tabular-nums; }
+.ui-msg { font-size: 12px; color: var(--muted); max-width: 320px; }
+.ui-msg.ok { color: var(--ok); }
+.ui-msg.bad { color: var(--bad); }
+
+/* ---- B 卡 §4 段卡：多段工作流的段2+ 各一张；单段＝一张都不画，界面与 A 阶段逐字相同 ---- */
+.stage-bar { align-items: baseline; }
+.stage-bar .hint { font-size: 12px; color: var(--muted); flex: 1 1 220px; }
+.stage-msg { font-size: 12px; color: var(--ok); }
+.stage-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  border-radius: 10px;
+  background: var(--card-bg-dim);
+  padding: 8px 10px;
+  margin-bottom: var(--gap);
+  animation: ba-fade var(--fade) ease-out;   /* 与 .job-card 同款：只 fade，不动位置 */
+}
+.stage-card h3 { font-size: 13px; margin: 0 0 6px; color: var(--ink); }
+.stage-card .row { margin-bottom: 0; }
+.stage-card .warn { margin: 0 0 6px; }
+.stage-tag { font-size: 11px; padding: 2px 8px; }
+
+/* 轻动效：只做锦上添花，每处 ≤200ms（卡 §4） */
+@keyframes ba-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- T007 密度（D37）：compact＝间距／字号各收一档，任务卡片排两列 ---- */
+body[data-density="compact"] { --pad: 10px; --gap: 6px; }
+body[data-density="compact"] header { padding: 8px 16px; gap: 8px; }
+body[data-density="compact"] main { gap: 10px; padding: 0 16px 16px; }
+body[data-density="compact"] h1 { font-size: 18px; }
+body[data-density="compact"] h2 { font-size: 14px; margin: 8px 0 4px; }
+body[data-density="compact"] label { font-size: 12px; gap: 2px; }
+body[data-density="compact"] input,
+body[data-density="compact"] select,
+body[data-density="compact"] textarea { font-size: 13px; padding: 4px 6px; }
+body[data-density="compact"] button.mini { font-size: 12px; padding: 4px 8px; }
+body[data-density="compact"] button#go { font-size: 14px; padding: 7px 20px; }
+body[data-density="compact"] table { font-size: 12px; }
+body[data-density="compact"] td,
+body[data-density="compact"] th { padding: 2px 5px; }
+body[data-density="compact"] #jobs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body[data-density="compact"] .job-card { flex: none; width: auto; }
+body[data-density="compact"] #wall img { max-width: 180px; }
+body[data-density="compact"] #models-list { max-height: 52vh; }
+body[data-density="compact"] .stage-card { padding: 6px 8px; }
+body[data-density="compact"] .stage-card h3 { font-size: 12px; margin-bottom: 4px; }
+
+/* 系统要求少动效：装饰性 transition/animation 全关，状态照旧靠文字（「出图中」等）说话 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  /* 卡 §4 明说 .spin 转圈可保留：留着它，但「出图中」三个字才是真状态指示 */
+  .spin { animation: jobspin .9s linear infinite !important; }
+}

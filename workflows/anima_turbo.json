@@ -1,0 +1,226 @@
+{
+  "workflow": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "anima-turbo-v1.1.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen_3_06b_base.safetensors",
+        "type": "qwen_image"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "qwen_image_vae.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "masterpiece, best quality, 1girl, solo, long black straight hair with purple gradient tips, glowing golden eyes, small black curved demon horns on head, white lace headdress with large red bow, black sailor dress with white lace trim, white frilled apron, red ribbon bow, long white lace stockings, black platform mary jane shoes, standing on a rainy neon city street at night, holding a paper umbrella, vivid colors, glowing neon signs, wet reflective pavement, cinematic lighting, detailed"
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "lowres, worst quality, low quality, blurry, bad anatomy, bad hands, extra digits, watermark, signature, text, jpeg artifacts"
+      }
+    },
+    "6": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      }
+    },
+    "7": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "latent_image": [
+          "6",
+          0
+        ],
+        "seed": 20261013,
+        "steps": 10,
+        "cfg": 1.0,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1.0
+      }
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "7",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "8",
+          0
+        ],
+        "filename_prefix": "huafang_local_first"
+      }
+    }
+  },
+  "profile": {
+    "schema_version": 2,
+    "workflow_id": "anima_turbo",
+    "label": "Anima Turbo 直出（无笔）",
+    "family": "anima",
+    "source_format": "api",
+    "model_slots": [
+      {
+        "role": "unet",
+        "node": "1",
+        "input": "unet_name",
+        "family": "anima",
+        "label": "底模"
+      },
+      {
+        "role": "clip",
+        "node": "2",
+        "input": "clip_name",
+        "family": "anima",
+        "label": "文本编码器"
+      },
+      {
+        "role": "vae",
+        "node": "3",
+        "input": "vae_name",
+        "family": "anima",
+        "label": "VAE"
+      }
+    ],
+    "lora_slots": [],
+    "stages": [
+      {
+        "id": "stage1",
+        "label": "直出",
+        "model_role": "unet",
+        "lora_roles": [],
+        "links": {
+          "model": {
+            "node": "7",
+            "input": "model"
+          },
+          "positive": {
+            "node": "7",
+            "input": "positive"
+          },
+          "negative": {
+            "node": "7",
+            "input": "negative"
+          },
+          "latent": {
+            "node": "7",
+            "input": "latent_image"
+          }
+        },
+        "params": {
+          "seed": {
+            "node": "7",
+            "input": "seed"
+          },
+          "steps": {
+            "node": "7",
+            "input": "steps"
+          },
+          "cfg": {
+            "node": "7",
+            "input": "cfg"
+          },
+          "sampler_name": {
+            "node": "7",
+            "input": "sampler_name"
+          },
+          "scheduler": {
+            "node": "7",
+            "input": "scheduler"
+          },
+          "denoise": {
+            "node": "7",
+            "input": "denoise"
+          }
+        },
+        "prompt": {
+          "positive_source": [
+            {
+              "node": "4",
+              "input": "text"
+            }
+          ],
+          "negative_source": [
+            {
+              "node": "5",
+              "input": "text"
+            }
+          ]
+        },
+        "latent_size": {
+          "node": "6",
+          "width_input": "width",
+          "height_input": "height",
+          "batch_input": "batch_size"
+        }
+      }
+    ],
+    "save_slots": [
+      {
+        "node": "9",
+        "prefix_input": "filename_prefix",
+        "final": true
+      }
+    ],
+    "image_slots": [],
+    "params": {
+      "per_stage": true,
+      "keep_workflow_value": []
+    },
+    "defaults": {
+      "steps": 10,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "width": 1024,
+      "height": 1024
+    },
+    "notes": "B 卡 §1 导入自 wf.json：1 段、0 笔槽、1 个存图口（成品 1 个）"
+  }
+}

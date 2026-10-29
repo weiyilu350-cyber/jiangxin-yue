@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>画舫</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="/static/favicon.ico">
+</head>
+<body data-density="loose" data-bg-on="0" data-bg-tone="light">
+<!-- T007 背景层：图＋遮罩各一层，都压在内容下面（负 z-index），关闭背景＝只剩纯底色主题 -->
+<div id="bg-layer" class="bg-layer" aria-hidden="true"></div>
+<div id="bg-mask" class="bg-mask" aria-hidden="true"></div>
+<header>
+  <h1>画舫</h1>
+  <span id="comfy-state" class="pill">…</span>
+  <!-- T011：起炉子按钮。点了才起，画舫绝不偷偷点（D102）；炉子已经在线时置灰。 -->
+  <button id="furnace-btn" class="mini" type="button"
+          title="点一下才起，画舫绝不偷偷起；起炉子会吃掉约 8G 显存（和训练抢卡），用完记得关">起炉子</button>
+  <span id="gpu-pill" class="pill warn" hidden></span>
+  <a id="nav-gallery" class="pill" href="/gallery"
+     title="图库：所有出过的图跨会话可查、可筛、可收藏、可评分打标签">图库</a>
+  <a id="nav-compare" class="pill" href="/compare"
+     title="对比板：以当前参数为基准同 seed 出变体，或从图库挑几张并排看">对比板</a>
+  <span class="ui-controls">
+    <label class="ui-ctl" title="背景图从 static\bg 文件夹里挑；自己的图丢进那个文件夹，刷新就会出现在这里">背景
+      <select id="ui-bg"></select>
+    </label>
+    <input type="file" id="ui-bg-file" accept="image/*" hidden>
+    <label class="ui-ctl" for="ui-blur">
+      <span id="ui-blur-value">模糊 10px</span>
+      <input type="range" id="ui-blur" min="0" max="40" step="1" value="10" disabled>
+    </label>
+    <label class="ui-ctl" title="宽松＝大卡片大留白；紧凑＝间距字号各收一档、任务卡片排两列">密度
+      <select id="ui-density">
+        <option value="loose">宽松</option>
+        <option value="compact">紧凑</option>
+      </select>
+    </label>
+    <!-- T011：默认关。勾上＝画舫自己启动时发现炉子没开就点一次（每进程最多一次、失败不重试）。 -->
+    <label class="ui-ctl" title="勾上以后，每次画舫自己启动时发现炉子没开，就替你去点一次（只点一次，点不着不重试）；会吃掉约 8G 显存，和训练抢卡。不勾＝炉子永远要你自己起">开机自动拉起炉子（吃8G显存，默认关）
+      <input id="comfy-auto" type="checkbox">
+    </label>
+    <span id="ui-message" class="ui-msg" role="status"></span>
+  </span>
+</header>
+<main>
+  <section class="panel">
+    <div class="row">
+      <label>工作流 <select id="profile"></select></label>
+      <label>底模 <select id="unet"></select></label>
+    </div>
+    <div id="profile-warn" class="warn" role="status" hidden></div>
+    <div class="row preset-row">
+      <label>预设 <select id="preset"></select></label>
+      <button id="delete-preset" class="mini" type="button" disabled title="内置的默认配方不能删">删预设</button>
+      <button id="load-full" class="mini" type="button">整套载入</button>
+      <button id="load-params" class="mini" type="button">只换参数＋触发词</button>
+      <button id="save-preset" class="mini" type="button" title="把当前整套状态存成配方，点击后可命名">存预设</button>
+      <label class="check"><input id="show-all" type="checkbox"> 显示全部配方</label>
+    </div>
+    <div id="save-box" class="row" hidden>
+      <label>配方名字 <input id="preset-name" type="text" placeholder="给这支配方起个名字"></label>
+      <button id="save-confirm" class="mini" type="button">存</button>
+      <button id="save-cancel" class="mini" type="button">取消</button>
+    </div>
+    <div id="preset-warn" class="warn" hidden></div>
+    <div id="loras"></div>
+    <div class="row">
+      <label>正词<textarea id="positive" rows="3" placeholder="想画什么，写这里（中文也行，点下面两个按钮换成英文标签）"></textarea></label>
+    </div>
+    <div class="row zh-row">
+      <button id="zh-complete" class="mini" type="button" title="把选中的中文（或光标处的中文词）换成英文标签；词表在本地">中文补全</button>
+      <button id="zh-translate" class="mini" type="button" title="整句里的中文翻成英文标签；英文 tag 与触发词不动（本机 Ollama，只用 CPU）">整句翻译</button>
+      <span id="zh-message" class="zh-msg" role="status"></span>
+    </div>
+    <div id="zh-pop" class="zh-pop" hidden></div>
+    <div class="row">
+      <label>负词<textarea id="negative" rows="2"></textarea></label>
+    </div>
+    <div class="row params">
+      <label>尺寸 <select id="size-preset" title="常用宽高一键填入；手改宽或高的数字，这里会自动回到「自定义」"></select></label>
+      <label>宽 <input id="width" type="number" value="832"></label>
+      <label>高 <input id="height" type="number" value="1216"></label>
+      <label>张数 <input id="count" type="number" min="1" max="8" value="1" title="一次出几张（1–8）；填了范围外的数字，提交后会被夹回范围内"></label>
+      <label>步数 <input id="steps" type="number" value="30"></label>
+      <label>CFG <input id="cfg" type="number" step="0.1" value="4.0"></label>
+      <label>种子 <input id="seed" type="number" value="-1" title="-1 = 随机"></label>
+      <label>采样器 <select id="sampler_name"></select></label>
+      <label>调度 <select id="scheduler"></select></label>
+    </div>
+    <div id="stage-cards"></div>
+    <button id="go">出图</button>
+    <span id="status" class="pill"></span>
+  </section>
+  <details id="models-panel" class="panel">
+    <summary>模型</summary>
+    <div class="row">
+      <button id="refresh-models" class="mini" type="button">重新扫描</button>
+      <span id="models-message" class="model-msg" role="status"></span>
+    </div>
+    <p class="hint">只读扫描：画舫不下载、不移动、不改模型文件。笔的触发词可以人工覆盖，空串＝这支笔明确不用触发词。</p>
+    <div id="models-list"></div>
+  </details>
+  <section class="panel">
+    <h2>结果</h2>
+    <div class="row output-row">
+      <label>输出目录 <input id="output-dir" type="text" placeholder="留空＝不复制，成品只留在炉子的输出文件夹" title="出完图把成品复制一份到这里；重名自动加 _1、_2，绝不覆盖你已有的文件"></label>
+      <button id="save-output-dir" class="mini" type="button" title="校验并存进设置；填错会给一句人话，不会写坏设置">保存</button>
+      <button id="reveal-output" class="mini" type="button" title="用系统的文件管理器打开成品文件夹（没配输出目录就打开炉子的输出文件夹）">打开成品文件夹</button>
+      <span id="output-message" class="zh-msg" role="status"></span>
+    </div>
+    <div id="jobs-message" class="jobs-msg" role="status"></div>
+    <div id="jobs"></div>
+    <p class="hint">任务卡片＝本次会话的活；刷新页面只把跑完的图重新摆上来，不会重新提交任务。</p>
+    <div id="copy-message" class="jobs-msg warn" role="status" hidden></div>
+    <div id="wall"></div>
+    <h2>参数回执</h2>
+    <table id="receipt">
+      <thead><tr><th>项</th><th>界面要的</th><th>炉子收到的</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <details id="advanced">
+      <summary>高级详情</summary>
+      <pre id="raw"></pre>
+    </details>
+  </section>
+</main>
+<script>window.HUAFANG_TOKEN = "__HUAFANG_TOKEN__";</script>
+<script src="/static/app.js"></script>
+</body>
+</html>

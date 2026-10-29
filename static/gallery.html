@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>画舫 · 图库</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/gallery.css">
+<link rel="icon" href="/static/favicon.ico">
+</head>
+<body data-density="loose" data-bg-on="0" data-bg-tone="light">
+<header>
+  <h1>画舫 · 图库</h1>
+  <a id="nav-home" class="pill" href="/">出图台</a>
+  <a id="nav-compare" class="pill" href="/compare">对比板</a>
+  <span id="gal-state" class="pill">…</span>
+  <span class="ui-controls">
+    <button id="backfill" class="mini" type="button"
+      title="只读扫炉子历史与设置里的附加目录，把以前出的图补登进索引。认不出的文件跳过并报数，图片文件一个都不动。">回填旧图</button>
+    <label class="ui-ctl" title="密度沿用出图台的设置">密度
+      <select id="ui-density">
+        <option value="loose">宽松</option>
+        <option value="compact">紧凑</option>
+      </select>
+    </label>
+    <span id="gal-message" class="ui-msg" role="status"></span>
+  </span>
+</header>
+<main class="gal-main">
+  <section class="panel">
+    <h2>筛选</h2>
+    <div class="row filters">
+      <label>关键词 <input id="f-q" type="text" placeholder="正词／负词／文件名"></label>
+      <label>工作流 <select id="f-workflow"><option value="">全部</option></select></label>
+      <label>底模 <select id="f-unet"><option value="">全部</option></select></label>
+      <label>笔名 <input id="f-pen" type="text" placeholder="笔的名字，模糊匹配"></label>
+      <label>标签 <select id="f-tag"><option value="">全部</option></select></label>
+      <label>评分下限
+        <select id="f-rating">
+          <option value="0">不限</option>
+          <option value="1">1 星以上</option>
+          <option value="2">2 星以上</option>
+          <option value="3">3 星以上</option>
+          <option value="4">4 星以上</option>
+          <option value="5">5 星</option>
+        </select>
+      </label>
+      <label>来源 <select id="f-source">
+        <option value="">全部</option>
+        <option value="job">本次出图</option>
+        <option value="history">炉子历史</option>
+        <option value="disk">磁盘回填</option>
+      </select></label>
+      <label>日期从 <input id="f-from" type="date"></label>
+      <label>到 <input id="f-to" type="date"></label>
+      <label>宽 <span class="size-pair">
+        <input id="f-wmin" type="number" min="0" placeholder="最小"><span>–</span>
+        <input id="f-wmax" type="number" min="0" placeholder="最大"></span></label>
+      <label>高 <span class="size-pair">
+        <input id="f-hmin" type="number" min="0" placeholder="最小"><span>–</span>
+        <input id="f-hmax" type="number" min="0" placeholder="最大"></span></label>
+      <label>每页 <select id="f-per">
+        <option value="24">24</option>
+        <option value="60" selected>60</option>
+        <option value="120">120</option>
+        <option value="200">200</option>
+      </select></label>
+      <label class="check"><input id="f-fav" type="checkbox"> 只看收藏</label>
+      <label class="check"><input id="f-mid" type="checkbox"> 显示中间图</label>
+    </div>
+    <div class="row">
+      <button id="apply" class="mini" type="button">筛</button>
+      <button id="reset" class="mini" type="button">清空筛选</button>
+      <span id="stats" class="gal-stats" role="status"></span>
+    </div>
+    <p class="hint">图库只是索引：图片文件永远不搬家、不删除、不改名；收藏／评分／标签全存在画舫自己的索引库里。</p>
+  </section>
+
+  <section class="panel">
+    <h2>图</h2>
+    <div id="grid"></div>
+    <div id="pager">
+      <button id="prev" class="mini" type="button">上一页</button>
+      <span id="page-info" class="gal-stats"></span>
+      <button id="next" class="mini" type="button">下一页</button>
+    </div>
+  </section>
+
+  <div id="tray" hidden>
+    <span id="tray-count" class="gal-stats"></span>
+    <button id="go-compare" class="mini" type="button" title="挑 2–8 张，去对比板并排看">对比这几张</button>
+    <button id="clear-pick" class="mini" type="button">清空选择</button>
+    <span class="hint">勾左上角的圈选图；点星星即收藏，再点取消。</span>
+  </div>
+</main>
+
+<div id="lightbox" hidden>
+  <div class="lb-view" id="lb-view"></div>
+  <aside class="lb-side">
+    <h2 id="lb-title">参数</h2>
+    <div class="row">
+      <button id="lb-fav" class="mini" type="button">收藏</button>
+      <span id="lb-stars" class="lb-stars"></span>
+    </div>
+    <div class="row">
+      <input id="lb-tag-input" type="text" placeholder="加个标签，回车确认（中文随意）">
+      <button id="lb-tag-add" class="mini" type="button">加标签</button>
+    </div>
+    <div id="lb-tags" class="lb-tags"></div>
+    <table class="lb-params"><tbody id="lb-params"></tbody></table>
+    <div class="lb-acts">
+      <button id="lb-refill" class="mini" type="button"
+        title="把这张图的参数填回出图台，不会自动出图">按此参数回到出图台</button>
+      <button id="lb-pick" class="mini" type="button" title="加入对比选择">加入对比</button>
+      <button id="lb-close" class="mini" type="button">关闭</button>
+    </div>
+    <p class="hint" id="lb-note"></p>
+  </aside>
+</div>
+<script>window.HUAFANG_TOKEN = "__HUAFANG_TOKEN__";</script>
+<script src="/static/gallery.js"></script>
+</body>
+</html>

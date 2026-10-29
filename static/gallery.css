@@ -1,0 +1,129 @@
+/* 图库／对比板专用样式（C 卡）。
+   只加新 class，`style.css` 里既有的 ID／class 一个不动（T007-BA 卡红线）；
+   颜色一律取 body 上的变量，所以浅／深两套底色板自动跟着走。 */
+
+/* 两个新页面都是单列长条，不像出图台那样左右分栏 */
+main.gal-main { display: block; padding: 0 22px 22px; }
+
+header a.pill { text-decoration: none; }
+header a.pill:hover { background: var(--hover-bg); }
+
+/* ---- 筛选栏 ---- */
+.filters label { flex: 0 1 170px; min-width: 130px; }
+.filters input[type="number"] { width: 82px; }
+.filters .check { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; }
+.filters .check input { width: auto; }
+.size-pair { display: flex; gap: 6px; align-items: center; }
+.gal-stats { font-size: 13px; color: var(--muted); }
+
+/* ---- 网格 ---- */
+#grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+body[data-density="compact"] #grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.gal-card {
+  position: relative; background: var(--card-bg); border: 1px solid var(--line);
+  border-radius: 12px; padding: 6px; display: flex; flex-direction: column; gap: 4px;
+  animation: ba-fade var(--fade) ease-out;
+}
+.gal-card.picked { border-color: var(--blue-strong); box-shadow: 0 0 0 2px var(--blue); }
+.gal-card img.thumb {
+  width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px;
+  background: var(--card-bg-dim); cursor: zoom-in; display: block;
+}
+.gal-card img.thumb.bad { object-fit: none; cursor: default; }
+.gal-nofile {
+  width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; background: var(--card-bg-dim);
+  color: var(--muted); font-size: 12px; padding: 8px; overflow-wrap: anywhere; overflow: hidden;
+}
+.gal-meta { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.gal-name { font-size: 12px; overflow-wrap: anywhere; }
+.gal-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.gal-badge {
+  font-size: 11px; border-radius: 999px; padding: 1px 8px;
+  background: var(--pill-bg); color: var(--pill-ink);
+}
+.gal-badge.mid { background: var(--warn-bg); color: var(--warn-chip-ink); }
+.gal-badge.out { background: var(--bad-bg); color: var(--bad-chip-ink); }
+
+/* 角标：星星（收藏）与勾选（对比）都浮在缩略图上，单击即改、即时落库 */
+.gal-fav, .gal-pick {
+  position: absolute; top: 10px; border: 0; border-radius: 999px; cursor: pointer;
+  width: 28px; height: 28px; line-height: 1; font-size: 15px; padding: 0;
+  background: var(--panel); color: var(--muted); box-shadow: var(--shadow);
+}
+.gal-fav { right: 10px; }
+.gal-pick { left: 10px; }
+.gal-fav.on { color: var(--warn-ink); background: var(--warn-bg); }
+.gal-pick.on { color: #fff; background: var(--blue-strong); }
+.gal-fav:focus-visible, .gal-pick:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+/* ---- 分页 ---- */
+#pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 12px; }
+#pager .gal-stats { min-width: 160px; text-align: center; }
+
+/* ---- 对比托盘 ---- */
+#tray {
+  position: sticky; bottom: 0; margin-top: 14px; padding: 10px 14px;
+  background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius);
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap; box-shadow: var(--shadow);
+}
+#tray[hidden] { display: none; }
+
+/* ---- 大图弹层 ---- */
+#lightbox {
+  position: fixed; inset: 0; z-index: 40; background: rgba(10, 18, 28, .72);
+  display: flex; gap: 14px; padding: 18px; animation: ba-fade var(--fade) ease-out;
+}
+#lightbox[hidden] { display: none; }
+.lb-view { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: center; }
+.lb-view img { max-width: 100%; max-height: 82vh; border-radius: 10px; background: var(--card-bg-dim); }
+.lb-side {
+  flex: 0 0 340px; max-height: 88vh; overflow: auto; background: var(--panel);
+  border: 1px solid var(--panel-border); border-radius: var(--radius); padding: var(--pad);
+}
+.lb-side h2 { margin-top: 0; }
+.lb-params { width: 100%; font-size: 12px; }
+.lb-params td { vertical-align: top; padding: 2px 4px; border-bottom: 1px solid var(--line); }
+.lb-params td:first-child { color: var(--muted); white-space: nowrap; width: 74px; }
+.lb-params td:last-child { overflow-wrap: anywhere; }
+.lb-stars { display: flex; gap: 4px; }
+.lb-star {
+  border: 1px solid var(--line); background: var(--btn-bg); color: var(--muted);
+  border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 15px; padding: 0;
+}
+.lb-star.on { background: var(--warn-bg); color: var(--warn-chip-ink); border-color: var(--warn-chip-ink); }
+.lb-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.lb-tag {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+  background: var(--pill-bg); color: var(--pill-ink); border-radius: 999px; padding: 2px 8px;
+}
+.lb-tag button { border: 0; background: none; cursor: pointer; color: inherit; font-size: 13px; padding: 0; }
+.lb-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* ---- 对比板 ---- */
+.cmp-grid { display: grid; gap: 12px; }
+.cmp-grid.side { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.cmp-grid.tiles { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.cmp-cell {
+  background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px;
+  padding: 8px; display: flex; flex-direction: column; gap: 6px; overflow: hidden;
+}
+.cmp-shot { overflow: hidden; border-radius: 8px; background: var(--card-bg-dim); cursor: grab; }
+.cmp-shot img { display: block; width: 100%; transform-origin: center center; }
+.cmp-cap { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.cmp-cap b { color: var(--ink); }
+.cmp-var { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.cmp-var label { font-size: 12px; }
+.cmp-var input, .cmp-var select { font-size: 12px; }
+.variant-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line); padding: 6px 0;
+}
+.variant-row .tag { font-size: 12px; color: var(--muted); flex: 0 0 46px; }
+.variant-row input[type="number"] { width: 76px; }
+.variant-row select { width: 120px; }
+#receipts td { font-size: 12px; }
+/* 选中的那一档（对比板的「模式 A／B」页签、弹层里已收藏的按钮）要点得出来 */
+button.mini.on { background: var(--blue-strong); color: #fff; border-color: var(--blue-strong); }
+/* 模式 B 的参数对照表：几张图取值不一样的那一项才是要看的，标蓝加粗 */
+#receipts tr.diff td:first-child { color: var(--blue-strong); font-weight: 600; }
+#receipts td { overflow-wrap: anywhere; vertical-align: top; }
