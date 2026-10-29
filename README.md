@@ -4,7 +4,9 @@
 
 ## 界面预览
 
-以下截图均来自独立演示配置：模型目录为空、自动拉起关闭，背景使用仓库自带的手写 SVG。画面只包含应用页面，不包含桌面或真实模型列表。空目录演示可以浏览界面，尚不能生成图片。
+以下截图均来自独立占位演示配置：模型列表只含 `sample_base.safetensors`、`sample_te.safetensors`、`sample_vae.safetensors`、`sample_style.safetensors`，它们只有测试用的空头部，不能用于推理。临时演示工作流仅将模型文件名引用换成这些样例名，仓库中的工作流保持原样。文件存在性与结构契约可以通过，并不代表真实模型加载或出图已通过。
+
+自动拉起关闭，背景使用仓库自带的手写 SVG；画面只包含应用页面。截图如实保留“ComfyUI 未启动”等状态，没有真实出图结果。
 
 ![画舫演示界面](docs/images/demo-home.png)
 
@@ -22,17 +24,35 @@
 
 ```powershell
 uv venv --python 3.12 .venv
-uv pip install --python .\.venv\Scripts\python.exe --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+uv pip install --python .\.venv\Scripts\python.exe -r requirements.txt
 ```
 
 ### 使用 Python venv
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 如果没有 `py` 命令，可以用自己安装的 Python 3.12 解释器完整路径替代 `py -3.12`；路径有空格时使用 PowerShell 的 `& "解释器完整路径"` 调用。
+
+上面的安装命令默认使用官方 PyPI。
+
+### 国内网络可选镜像
+
+若访问官方 PyPI 较慢，可在上面的依赖安装命令后追加 `--index-url https://pypi.tuna.tsinghua.edu.cn/simple`。这是可选项，按所选安装方式使用对应命令：
+
+使用 uv：
+
+```powershell
+uv pip install --python .\.venv\Scripts\python.exe -r requirements.txt --index-url https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+使用 Python venv：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt --index-url https://pypi.tuna.tsinghua.edu.cn/simple
+```
 
 ## 配置与启动
 
@@ -101,7 +121,7 @@ $json = $cfg | ConvertTo-Json -Depth 8
 .\.venv\Scripts\python.exe -B -m uvicorn app.main:app --host 127.0.0.1 --port 8788
 ```
 
-打开页面时会显示缺少模型、ComfyUI 尚未连接等提示，这是空目录演示的预期状态。截图中的模型下拉为空，演示没有产生真实出图结果。
+打开页面时会显示缺少模型、ComfyUI 尚未连接等提示，这是空目录演示的预期状态。上面的截图使用另一份占位演示档；其临时模型文件只含假头部，不能用于推理。空目录演示与占位演示都没有产生真实出图结果。
 
 ## 背景图
 
