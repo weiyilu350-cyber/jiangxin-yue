@@ -103,6 +103,8 @@ Windows 路径在 JSON 中建议写成 `C:/AI/ComfyUI/models`；使用反斜杠�
 
 触发词表与中文补全词表也需要自备。`trigger_map`、`zh.table` 留空时，分别尝试读取 `data/trigger_map.json`、`data/zh_tags.json`；缺表有容错。整句翻译需要另行配置本机 Ollama，可在 `zh.enabled` 中关闭中文辅助。
 
+其他底模（如 moss 等非 Anima 系模型）的接入方法见 [docs/other-models.md](docs/other-models.md)。
+
 ## 仅浏览界面的演示配置
 
 没有模型也可以启动页面。下面的配置将模型与输出指向临时空目录，关闭中文辅助和自动拉起。它会覆盖本项目的本地设置；已有设置请先自行备份。
