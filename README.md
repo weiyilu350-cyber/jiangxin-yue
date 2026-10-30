@@ -74,6 +74,7 @@ notepad .\data\settings.json
 | `output.dir` | 可选的成品复制目录；留空则仅保存到 ComfyUI |
 | `comfy.bat` / `comfy.vbs` | 可选的本地启动脚本；留空时手动启动 ComfyUI |
 | `comfy.auto_start` | 默认关闭；打开后每次启动最多尝试自动拉起一次 |
+| `comfy.auto_free` | 默认关闭；打开后空闲超过 `comfy.idle_minutes` 分钟（默认 15，可设 5–120）且炉子队列为空时，卸载模型释放显存；下次出图自动重载 |
 
 Windows 路径在 JSON 中建议写成 `C:/AI/ComfyUI/models`；使用反斜杠时必须写成 `C:\\AI\\ComfyUI\\models`。目录要填完整路径，避免只写 `models` 这样的相对路径。修改模型根目录和输出根目录后，需要重启画舫。
 

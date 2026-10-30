@@ -14,6 +14,8 @@ from app import settings as ST
 # 测试文件里也用 `with`，而主人盘上又勾着「开机自动拉起炉子」，那一跑全量单测就会去点一次
 # 真炉子——8G 显存，还和训练抢卡。放在包级＝这件事从此靠构造保证，不靠人记得。
 os.environ.setdefault("HUAFANG_SKIP_AUTOSTART", "1")
+# T012 同样在包级关闸，避免其它端点用例进入 lifespan 后碰到真炉子的 /free。
+os.environ.setdefault("HUAFANG_SKIP_IDLE_FREE", "1")
 
 # 公开副本不带运行数据；导入 main 生成的 token 与配置也只落在测试临时目录。
 _runtime = TemporaryDirectory(prefix="huafang-tests-")

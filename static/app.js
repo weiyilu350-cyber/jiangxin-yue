@@ -13,6 +13,7 @@ const COMPARE_KEY = "huafang.compare";
 const REFILL_KEY = "huafang.refill";
 let BOOT = null;
 let PRESETS = [];
+let IDLE_FREE = { auto_free: false, idle_minutes: 15 };
 
 function clampCount(v) {
   const n = Math.trunc(Number(v));
@@ -27,6 +28,8 @@ async function boot() {
   pill.className = "pill " + (BOOT.comfy_alive ? "ok" : "bad");
   syncFurnaceUi(BOOT.comfy_alive);                            // T011：在线就把「起炉子」置灰
   $("comfy-auto").checked = !!(BOOT.comfy || {}).auto_start;   // T011：开关照盘上的值复原（后端已兜坏值）
+  IDLE_FREE = { ...(BOOT.idle_free || { auto_free: false, idle_minutes: 15 }) };
+  fillIdleFree();
 
   const ps = $("profile");
   ps.innerHTML = "";
@@ -1324,6 +1327,61 @@ async function saveComfyAuto() {
   }
 }
 
+/* ---- T012 空闲收火：状态失败静默，设置失败回退，不打断出图 ---- */
+function fillIdleFree() {
+  $("comfy-auto-free").checked = IDLE_FREE.auto_free;
+  $("comfy-idle-minutes").value = IDLE_FREE.idle_minutes;
+}
+
+async function saveIdleFree() {
+  const box = $("comfy-auto-free");
+  const input = $("comfy-idle-minutes");
+  const minutes = Number(input.value);
+  if (!input.value.trim() || !Number.isInteger(minutes)) {
+    fillIdleFree();
+    sayUi("空闲时间得是整数分钟（5–120 分钟）");
+    return false;
+  }
+  box.disabled = input.disabled = true;
+  try {
+    const r = await fetch("/api/furnace/idle-free", {
+      method: "POST", headers: { ...H, "Content-Type": "application/json" },
+      body: JSON.stringify({ auto_free: box.checked, idle_minutes: minutes }),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok || body.ok !== true) throw new Error(human(body) || body.human || "空闲收火设置没能记住");
+    IDLE_FREE = { auto_free: body.auto_free, idle_minutes: body.idle_minutes };
+    fillIdleFree();
+    sayUi(body.human || "已记住", "ok");
+    return true;
+  } catch (e) {
+    fillIdleFree();
+    sayUi(e.message);
+    return false;
+  } finally {
+    box.disabled = input.disabled = false;
+  }
+}
+
+async function pollIdleFree() {
+  try {
+    const r = await fetch("/api/furnace/idle-free", { headers: H });
+    if (!r.ok) return;
+    const body = await r.json();
+    const pill = $("comfy-state");
+    pill.textContent = !body.alive ? "ComfyUI 未启动"
+      : body.standby ? "待命（模型已卸）" : "ComfyUI 在线";
+    pill.className = "pill " + (body.alive ? "ok" : "bad");
+    syncFurnaceUi(body.alive);
+  } catch (e) { /* 状态只是提示，失败静默留待下轮，不弹红、不写控制台。 */ }
+}
+
+function startIdleFreePoll() {
+  pollIdleFree();
+  setInterval(() => { if (!document.hidden) pollIdleFree(); }, 15000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pollIdleFree(); });
+}
+
 window.onload = () => {
   SAMPLERS.forEach((s) => $("sampler_name").appendChild(new Option(s, s)));
   SCHEDULERS.forEach((s) => $("scheduler").appendChild(new Option(s, s)));
@@ -1368,9 +1426,12 @@ window.onload = () => {
     $("ui-density").onchange = () => saveUi({ density: $("ui-density").value });
     $("furnace-btn").onclick = startFurnace;      // T011
     $("comfy-auto").onchange = saveComfyAuto;     // T011
+    $("comfy-auto-free").onchange = saveIdleFree;
+    $("comfy-idle-minutes").onchange = saveIdleFree;
     loadZhStatus();
     consumeRefill();                   // C 卡：从图库「按此参数回到出图台」跳回来时把参数填上（不自动出图）
     startGpuPoll();                // T006：加载查一次，其后 15s 一轮（不可见暂停）
+    startIdleFreePoll();
     loadJobs(true).catch(() => {});   // T005：刷新页面就把结果墙恢复回来（只读恢复，不重新提交）
   });
 };

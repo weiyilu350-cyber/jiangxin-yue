@@ -52,6 +52,8 @@ DEFAULTS = {
     # 读侧一律走 comfy_settings()，别裸取 SETTINGS["comfy"]——理由见该函数。
     "comfy": {
         "auto_start": False,
+        "auto_free": False,
+        "idle_minutes": 15,
         "vbs": "",
         "bat": "",
     },
@@ -166,7 +168,8 @@ def comfy_settings() -> dict:
     """
     raw = _read_dict(SETTINGS_FILE).get("comfy")
     raw = raw if isinstance(raw, dict) else {}
-    out = dict(DEFAULTS["comfy"])
+    # T011 的读侧仍只返回三样；收火设置由 idle_free_settings 单独读取。
+    out = {k: DEFAULTS["comfy"][k] for k in ("auto_start", "vbs", "bat")}
     if raw.get("auto_start") is True:
         out["auto_start"] = True
     for k in ("vbs", "bat"):
@@ -190,6 +193,37 @@ def save_comfy_auto(on: bool) -> dict:
     saved = _read_dict(SETTINGS_FILE)
     c = saved.get("comfy")
     saved["comfy"] = {**(c if isinstance(c, dict) else {}), "auto_start": on}
+    save_settings(saved)
+    return saved["comfy"]
+
+
+def idle_free_settings() -> dict:
+    """T012 每次现读 comfy 块；开关只认 true，分钟数缺失／坏值回 15，整数夹到 5–120。"""
+    raw = _read_dict(SETTINGS_FILE).get("comfy")
+    raw = raw if isinstance(raw, dict) else {}
+    minutes = raw.get("idle_minutes")
+    if type(minutes) is not int:
+        minutes = DEFAULTS["comfy"]["idle_minutes"]
+    return {"auto_free": raw.get("auto_free") is True,
+            "idle_minutes": min(120, max(5, minutes))}
+
+
+def norm_idle_free(raw):
+    """写侧拒绝假布尔和非整数；只接两个设置项，不接路径或额外开关。"""
+    if not isinstance(raw, dict) or type(raw.get("auto_free")) is not bool:
+        return None, _err("bad_auto_free", "空闲收火开关只能是打开（true）或关掉（false）")
+    if type(raw.get("idle_minutes")) is not int:
+        return None, _err("bad_idle_minutes", "空闲时间得是整数分钟（5–120 分钟）")
+    return {"auto_free": raw["auto_free"],
+            "idle_minutes": min(120, max(5, raw["idle_minutes"]))}, None
+
+
+def save_idle_free(cfg: dict) -> dict:
+    """只写 comfy 的两个收火字段，保留 T011 的开关、路径和其它用户设置。"""
+    saved = _read_dict(SETTINGS_FILE)
+    comfy = saved.get("comfy")
+    saved["comfy"] = {**(comfy if isinstance(comfy, dict) else {}),
+                      "auto_free": cfg["auto_free"], "idle_minutes": cfg["idle_minutes"]}
     save_settings(saved)
     return saved["comfy"]
 

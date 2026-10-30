@@ -806,7 +806,8 @@ class SourceStructureTests(unittest.TestCase):
             src = self.src(name)
             self.assertNotIn("start_comfyui_hidden", src, name)
             self.assertNotIn("run_nvidia_gpu", src, name)
-        self.assertEqual(ST.DEFAULTS["comfy"], {"auto_start": False, "vbs": "", "bat": ""})
+        self.assertEqual(ST.DEFAULTS["comfy"], {"auto_start": False, "auto_free": False,
+                                               "idle_minutes": 15, "vbs": "", "bat": ""})
 
 
 # ------------------------------------------------------------------ G 端点

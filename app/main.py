@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from . import gpu as GPU
 from . import backgrounds as BG
 from . import furnace
+from . import idle_free
 from . import gallery
 from . import models as MS
 from . import output as OUT
@@ -39,7 +40,14 @@ async def _lifespan(_app):
     之后每跑一次全量单测都会去点一次炉子、吃掉 8G 显存和训练抢卡。
     """
     furnace.auto_start_once(CLIENT.alive, SETTINGS["comfy_url"])
-    yield
+    worker = IDLE_FREE.start(CLIENT)
+    try:
+        yield
+    finally:
+        if worker is not None:
+            stopping, thread = worker
+            stopping.set()
+            thread.join(timeout=1)
 
 
 app = FastAPI(title="huafang", lifespan=_lifespan)
@@ -47,6 +55,7 @@ SETTINGS = load_settings()
 MODELS_ROOT = ST.models_root(SETTINGS)
 TOKEN = load_token()
 CLIENT = ComfyClient(SETTINGS["comfy_url"])
+IDLE_FREE = idle_free.IdleFree()
 TRIGGERS = TriggerResolver(SETTINGS["trigger_map"], MODELS_ROOT / MODEL_DIRS["lora"],
                            TRIGGER_OVERRIDES_FILE)
 ZH = ZS.ZhService(SETTINGS["zh"])   # 词表懒加载＋缓存，进程活着就只读一遍
@@ -177,6 +186,7 @@ def bootstrap():
         # 存盘的 comfy 块可能是半截的（写侧只写 auto_start 一个键），裸取 SETTINGS["comfy"] 会 KeyError。
         # 两条可执行路径不出后端：界面用不着，也不该由前端知道去哪点火。
         "comfy": {"auto_start": ST.comfy_settings()["auto_start"]},
+        "idle_free": ST.idle_free_settings(),
     }
 
 
@@ -199,7 +209,8 @@ def generate(req: dict):
         )
         wf = runner.build_workflow(p["workflow"], p["profile"], req, job.positive_final)
         job.sent = wf
-        job.prompt_id = CLIENT.submit(wf, client_id="huafang")
+        with IDLE_FREE.submitting():
+            job.prompt_id = CLIENT.submit(wf, client_id="huafang")
         job.status = "running"
     except ComfyError as e:
         job.status = "error"
@@ -407,6 +418,26 @@ def furnace_auto_save(req: dict = None):
     return {"auto_start": on,
             "human": ("已打开：画舫启动时发现炉子没开，就自己去点一次（会吃掉约 8G 显存，和训练抢卡）"
                       if on else "已关掉：炉子要你自己起，画舫绝不偷偷点")}
+
+
+@app.get("/api/furnace/idle-free")
+def idle_free_status():
+    """收火状态只作提示；探活或队列异常都安静降级，不报 500。"""
+    return IDLE_FREE.status(CLIENT)
+
+
+@app.post("/api/furnace/idle-free")
+def idle_free_save(req: dict = None):
+    cfg, err = ST.norm_idle_free(req)
+    if err:
+        raise HTTPException(400, detail=err)
+    try:
+        IDLE_FREE.save_settings(cfg)
+    except Exception:
+        return {"ok": False, "human": "空闲收火设置存不进磁盘，这次没有记住，请稍后再试"}
+    return {"ok": True, **cfg,
+            "human": (f"已记住：空闲 {cfg['idle_minutes']} 分钟后自动收火，下次出图会自动装回模型"
+                      if cfg["auto_free"] else "已关掉空闲收火")}
 
 
 @app.post("/api/bg/upload")

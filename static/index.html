@@ -41,6 +41,12 @@
     <label class="ui-ctl" title="勾上以后，每次画舫自己启动时发现炉子没开，就替你去点一次（只点一次，点不着不重试）；会吃掉约 8G 显存，和训练抢卡。不勾＝炉子永远要你自己起">开机自动拉起炉子（吃8G显存，默认关）
       <input id="comfy-auto" type="checkbox">
     </label>
+    <label class="ui-ctl" title="空闲且没有排队任务时卸载模型、释放显存；下次出图会自动装回模型">空闲自动收火（默认关）
+      <input id="comfy-auto-free" type="checkbox">
+    </label>
+    <label class="ui-ctl" for="comfy-idle-minutes">空闲分钟
+      <input id="comfy-idle-minutes" class="narrow" type="number" min="5" max="120" step="1" value="15">
+    </label>
     <span id="ui-message" class="ui-msg" role="status"></span>
   </span>
 </header>
