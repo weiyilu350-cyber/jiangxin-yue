@@ -509,7 +509,7 @@ def presets_save(req: dict):
 
 @app.post("/api/presets/{recipe_id}/load")
 def presets_load(recipe_id: str, req: dict):
-    """full＝底模＋笔＋提示词＋参数；params＝只换提示词＋参数，不带笔（雷区 4）。"""
+    """full＝底模＋笔＋提示词＋参数；params＝只换参数＋触发词，不带笔（雷区 4）。"""
     pid, slots, unets = preset_ctx(req.get("profile_id", ""))
     if not PS.valid_id(recipe_id):
         raise HTTPException(404, "没这个预设")
@@ -521,7 +521,8 @@ def presets_load(recipe_id: str, req: dict):
         recipe = DEFAULT_RECIPE
     try:
         return PS.build_load(recipe, data["overrides"], pid,
-                             req.get("mode", "full"), slots, unets)
+                             req.get("mode", "full"), slots, unets,
+                             resolve_triggers=TRIGGERS.for_loras)
     except PS.PresetError as e:
         raise HTTPException(400 if e.code == "bad_mode" else 409,
                             detail={"human": e.human, "code": e.code})

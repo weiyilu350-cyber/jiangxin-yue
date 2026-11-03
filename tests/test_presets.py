@@ -383,11 +383,12 @@ class LoadModeTests(unittest.TestCase):
         got = PS.build_load(self.r, {}, "anima_t2i", "params", 1, UNETS)
         self.assertNotIn("unet", got)
 
-    def test_params_mode_carries_prompt_and_params(self):
+    def test_params_mode_carries_triggers_and_params(self):
         got = PS.build_load(self.r, {}, "anima_t2i", "params", 1, UNETS)
         self.assertEqual(got["mode"], "params")
-        self.assertEqual(got["positive"], "1girl, solo")
-        self.assertEqual(got["negative"], "worst quality")
+        self.assertNotIn("positive", got)
+        self.assertNotIn("negative", got)
+        self.assertEqual(got["triggers"], [])
         self.assertEqual(got["params"], PARAMS)
 
     def test_unknown_mode_refused(self):
@@ -601,7 +602,9 @@ class PresetApiTests(unittest.TestCase):
         body = self.load(rid, mode="params").json()
         self.assertNotIn("loras", body)
         self.assertNotIn("unet", body)
-        self.assertEqual(body["positive"], "1girl, solo")
+        self.assertNotIn("positive", body)
+        self.assertNotIn("negative", body)
+        self.assertIn("triggers", body)
 
     def test_incompatible_load_is_409_not_silent_truncation(self):
         rid = self.save("双", loras=[PEN1, PEN2], pid="anima_dual").json()["id"]

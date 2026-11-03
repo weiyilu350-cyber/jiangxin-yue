@@ -195,7 +195,7 @@ def compatibility(recipe: dict, lora_slots: int, unet_list) -> tuple:
 
 
 def build_load(recipe: dict, overrides: dict, profile_id: str, mode: str,
-               lora_slots: int, unet_list) -> dict:
+               lora_slots: int, unet_list, resolve_triggers=None) -> dict:
     """算出载入回填包。不兼容就报错，绝不「载入了但少了笔」（雷区 7）。"""
     if mode not in ("full", "params"):
         raise PresetError("bad_mode", "载入只认「整套载入」和「只换参数＋触发词」两种")
@@ -205,13 +205,16 @@ def build_load(recipe: dict, overrides: dict, profile_id: str, mode: str,
         raise PresetError("incompatible", "；".join(warnings))
     out = {
         "mode": mode,
-        "positive": merged.get("positive", ""),
-        "negative": merged.get("negative", ""),
         "params": dict(merged.get("params") or {}),
     }
     if mode == "full":
+        out["positive"] = merged.get("positive", "")
+        out["negative"] = merged.get("negative", "")
         out["unet"] = merged.get("unet", "")
         out["loras"] = copy.deepcopy(merged.get("loras") or [])
+    else:
+        # 只摘配方笔的触发词，避免把保存时的整段提示词带回界面覆盖用户输入。
+        out["triggers"] = resolve_triggers(merged.get("loras") or []) if resolve_triggers else []
     return out
 
 

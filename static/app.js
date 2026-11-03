@@ -661,9 +661,45 @@ function setSelect(el, value) {
   return has;
 }
 
+function mergePresetTriggers(positive, triggers) {
+  // B 位沿用 compose；只改命中的触发词项，不能 trim/rejoin 用户其余的原文。
+  const head = new Set([
+    "newest", "recent", "old", "early", "mid", "safe", "explicit", "questionable", "sensitive",
+    "masterpiece", "best quality", "good quality", "normal quality", "worst quality", "low quality",
+    "highres", "absurdres", "high quality", "score_1", "score_2", "score_3", "score_4",
+    "score_5", "score_6", "score_7", "score_8", "score_9",
+    "1girl", "2girls", "3girls", "4girls", "5girls", "6+girls", "multiple girls", "many girls",
+    "1boy", "2boys", "multiple boys", "solo", "solo focus", "no humans", "animal focus", "other focus",
+  ]);
+  const norm = (value) => {
+    const token = value.toLowerCase().replace(/_/g, " ").trim().replace(/\s+/g, " ");
+    // @ 触发词内部误加的空格也算同一词；普通词不扩大匹配范围。
+    return token.startsWith("@") ? token.replace(/ /g, "") : token;
+  };
+  const tokens = [], seen = new Set();
+  for (const trigger of triggers || []) {
+    for (const part of trigger.split(",")) {
+      const token = part.trim(), key = norm(token);
+      if (key && !seen.has(key)) { seen.add(key); tokens.push(token); }
+    }
+  }
+  if (!tokens.length) return positive;
+  const kept = positive === "" ? [] : positive.split(",").filter((part) => !seen.has(norm(part)));
+  let index = 0;
+  while (index < kept.length) {
+    const word = kept[index].trim().toLowerCase();
+    if (word && !head.has(word) && !word.startsWith("year ")) break;
+    index++;
+  }
+  const before = kept.slice(0, index).join(","), after = kept.slice(index).join(",");
+  const prefix = index ? before + ", " : "";
+  const suffix = index < kept.length ? "," + (!index && !/^\s/.test(after) ? " " : "") + after : "";
+  return prefix + tokens.join(", ") + suffix;
+}
+
 function applyPayload(p) {
   const misses = [];
-  // params 模式只碰提示词与参数，绝不动底模和笔（雷区 4）
+  // params 模式只摘触发词与参数，绝不动底模和笔（雷区 4）
   if (p.mode === "full") {
     if (p.unet && !setSelect($("unet"), p.unet)) misses.push("底模 " + p.unet);
     const pens = p.loras || [];
@@ -677,8 +713,14 @@ function applyPayload(p) {
       }
     }
   }
-  $("positive").value = p.positive || "";
-  $("negative").value = p.negative || "";
+  if (p.mode === "params") {
+    const positive = $("positive").value;
+    const merged = mergePresetTriggers(positive, p.triggers);
+    if (merged !== positive) $("positive").value = merged;
+  } else {
+    $("positive").value = p.positive || "";
+    $("negative").value = p.negative || "";
+  }
   const prm = p.params || {};
   PARAM_FIELDS.forEach((k) => { if (k in prm) $(k).value = prm[k]; });
   syncSizePreset();   // 载配方也会改宽高，下拉同样要跟着走
@@ -703,7 +745,7 @@ async function loadPreset(mode) {
   }
   const misses = applyPayload(j);
   if (misses.length) sayPreset("载入了，但这些现在不在模型目录里，没动：" + misses.join("、"), true);
-  else sayPreset(mode === "params" ? "只换了提示词与参数，笔没动" : "已整套载入");
+  else sayPreset(mode === "params" ? "只换了参数和触发词，你的提示词没丢，笔没动" : "已整套载入");
 }
 
 function openSaveBox() {
